@@ -19,6 +19,7 @@ gem 'jettywrapper'
 # Use ActiveModel has_secure_password
 gem 'bcrypt', '~> 3.1.7'
 gem 'unicorn'
+gem 'therubyracer'
 
 gem "devise"
 gem "devise-guests", "~> 0.3"
