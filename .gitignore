@@ -7,12 +7,13 @@ InstalledFiles
 _yardoc
 coverage
 doc/
+jetty
 lib/bundler/man
+log/
 pkg
 rdoc
+spec/internal
 spec/reports
 test/tmp
 test/version_tmp
 tmp
-spec/internal
-jetty
