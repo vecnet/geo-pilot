@@ -15,31 +15,20 @@
       command: service postgresql initdb
                creates=/var/lib/pgsql/data/postgresql.conf
 
+    - name: Update pg_hba.conf
+      sudo: yes
+      copy: src=files/pg_hba.conf
+            dest=/var/lib/pgsql/data/pg_hba.conf
+            owner=postgres
+            group=postgres
+            mode=0640
+      notify:
+        - reload postgresql
+
     - name: Start postgresql
       service: name=postgresql
                enabled=yes
                state=started
-
-    - name: Ensure PostgreSQL is listening on all localhost
-      lineinfile: dest=/var/lib/pgsql/data/postgresql.conf
-        regexp='^#?listen_addresses\s*='
-        line="listen_addresses = '127.0.0.1'"
-        state=present
-      notify: restart postgresql
-
-    - name: postgres md5 login
-      lineinfile: dest=/var/lib/pgsql/data/pg_hba.conf
-                  regexp='host\s+all\s+all\s+127.0.0.1/32\s+md5'
-                  line='host all all 127.0.0.1/32 md5'
-                  insertbefore=BOF
-      notify: restart postgresql
-
-    - name: postgres login
-      lineinfile: dest=/var/lib/pgsql/data/pg_hba.conf
-                  line="host all postgres 127.0.0.1/32 trust"
-                  regexp="host\s+all\s+postgres\s+127.0.0.1/32\s+trust"
-                  insertbefore=BOF
-      notify: restart postgresql
 
     - name: Add vecnet database
       postgresql_db: name=vecnet_db
@@ -47,28 +36,18 @@
     - name: Add vecnet db user
       postgresql_user: db=vecnet_db name=vecnet encrypted=yes password=md586655461c3f6f1054157d24eeeeccbf7 priv=ALL
 
-    - name: vecnet DB permissions
-      postgresql_privs:
-        db=vecnet_db
-        privs=ALL
-        type=database
-        role=vecnet
+    - name: Make fedora database
+      postgresql_db: name=fedora
 
     - name: Make fedora user
-      postgresql_user: name=fedora encrypted=yes password=md5c2bbdf29f656955b46e2f349414ba9d4
-
-    - name: Make fedora database
-      postgresql_db: name=fedora owner=fedora
-
-    - name: fedora DB permissions
-      postgresql_privs:
-        db=fedora
-        privs=ALL
-        type=database
-        role=fedora
-
+      postgresql_user: db=fedora name=fedora encrypted=yes password=md5c2bbdf29f656955b46e2f349414ba9d4 priv=ALL
 
   handlers:
     - name: restart postgresql
-      service: name=postgresql state=restarted
+      sudo: yes
+      service: name=postgresql state=restarted enabled=yes
+
+    - name: reload postgresql
+      sudo: yes
+      service: name=postgresql state=reloaded enabled=yes
 
