@@ -1,0 +1,30 @@
+
+- name: Install packages
+  sudo: yes
+  yum: name={{ item }}
+       state=installed
+  with_items:
+   - java-1.7.0-openjdk
+   - tomcat6
+
+- name: Update port to 8081
+  sudo: yes
+  replace: dest=/etc/tomcat6/server.xml
+           regexp='"8080"'
+           replace='"8081"'
+  notify:
+    - restart tomcat
+
+- name: Update java options
+  sudo: yes
+  copy: src=tomcat6.conf
+    dest=/etc/tomcat6/tomcat6.conf
+    owner=root
+    group=root
+    mode=644
+
+- name: Start tomcat
+  sudo: yes
+  service: name=tomcat6
+           enabled=yes
+           state=started
