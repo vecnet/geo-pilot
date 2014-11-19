@@ -1,0 +1,13 @@
+- name: Install epel yum repository info
+  hosts: all
+  sudo: yes
+  vars:
+    epel_file: epel.repo
+  tasks:
+    - name: install epel rpm
+      copy: src=files/{{ epel_file }}
+            dest=/etc/yum.repos.d/{{ epel_file }}
+            owner=root
+            group=root
+            mode=644
+

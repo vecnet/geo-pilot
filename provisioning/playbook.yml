@@ -1,5 +1,9 @@
 ---
-- name: Standalone server
+- name: Base packages
+  hosts: all
+  include: fedora-epel.yml
+
+- name: Standalone
   hosts: all
   roles:
     - postgres

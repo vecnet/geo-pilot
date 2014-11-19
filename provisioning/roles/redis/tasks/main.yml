@@ -1,0 +1,13 @@
+
+- name: Install packages
+  sudo: yes
+  yum: name=redis
+       state=installed
+
+- name: Start redis
+  sudo: yes
+  service: name=redis
+           enabled=yes
+           state=started
+
+# need to poke hole in firewall for production two node system...
