@@ -1,0 +1,11 @@
+- name: Common packages
+  hosts: all
+  sudo: yes
+  tasks:
+    - name: install common packages
+      sudo: yes
+      yum: name={{ item }}
+           state=installed
+      with_items:
+       - htop
+       - tmux
