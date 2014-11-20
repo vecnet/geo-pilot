@@ -3,10 +3,15 @@
   hosts: all
   include: fedora-epel.yml
 
+- hosts: all
+  include: common.yml
+
 - name: Standalone
   hosts: all
   roles:
     - postgres
     - redis
+    - fits
     - tomcat
     - solr
+    #- { role: geerlingguy.solr, workspace: /opt/local, tomcat6_hostname: localhost, solr_cores: [ vecnet ], sudo: yes}

@@ -1,92 +1,135 @@
 ---
-- name: Include OS-specific variables.
-  include_vars: "{{ ansible_os_family }}.yml"
+- name: install log4j
+  sudo: yes
+  yum: name=log4j
+       state=installed
 
-- name: Set solr_filename for Solr 4.x.
-  set_fact: >
-    solr_filename=solr-{{ solr_version }}
-  when: "solr_version.split('.')[0] == '4'"
+- file: path={{item}} state=directory
+  sudo: yes
+  with_items:
+    - /opt/src
+    - /opt/local
 
-- name: Set solr_filename for Solr 3.x.
-  set_fact: >
-    solr_filename=apache-solr-{{ solr_version }}
-  when: "solr_version.split('.')[0] == '3'"
+- name: Check variable solr.version is set
+  fail: msg="Please set 'solr.version' variable in the playbook"
+  when: solr.version is not defined
 
-- name: Download Solr.
-  get_url: >
-    url=http://archive.apache.org/dist/lucene/solr/{{ solr_version }}/{{ solr_filename }}.tgz
-    dest={{ workspace }}/{{ solr_filename }}.tgz
-    force=no
+- name: Download SOLR
+  copy: src=solr-{{solr.version}}.zip
+        dest=/opt/src/solr-{{solr.version}}.zip
+        owner=tomcat
+        group=tomcat
+  sudo: yes
 
-- name: Expand Solr.
-  command: >
-    tar -C {{ workspace }} -xvzf {{ workspace }}/{{ solr_filename }}.tgz
-    creates={{ workspace }}/{{ solr_filename }}/dist/{{ solr_filename }}.war
+#  get_url: url=http://mirror.tcpdiag.net/apache/lucene/solr/{{solr.version}}/solr-{{solr.version}}.zip
+#           dest=/opt/src/solr-{{solr.version}}.zip
+#           sha256sum=aa0528975fa38b08de2000aae747b5f0a89c4232b2279280ad2f5d0ab58cbc82
 
-- name: Copy Solr into place.
-  command: >
-    cp -r {{ workspace }}/{{ solr_filename }} {{ solr_path }}
-    creates={{ solr_path }}/dist/{{ solr_filename }}.war
+- name: Setup directories
+  file: path={{item}}
+        state=directory
+        owner=tomcat
+        group=tomcat
+  sudo: yes
+  with_items:
+    - /opt/solr
+    - /opt/solr/bin
+    - /opt/solr/lib
 
-- name: Copy Solr war file into place.
-  command: >
-    cp {{ solr_path }}/dist/{{ solr_filename }}.war {{ solr_path }}/solr.war
-    creates={{ solr_path }}/solr.war
-  notify: restart tomcat
+- name: Unpack SOLR
+  command: unzip -d /opt/local /opt/src/solr-{{solr.version}}.zip
+        creates=/opt/local/solr-{{solr.version}}/dist/solr-{{solr.version}}.war
+  sudo: yes
 
-- name: Copy solr.xml into Tomcat.
-  template: >
-    src=Catalina/solr.xml.j2
-    dest=/etc/tomcat6/Catalina/{{ tomcat6_hostname }}/solr.xml
-    owner={{ tomcat_user }} group={{ tomcat_user }} mode=755
-  notify: restart tomcat
+- name: Copy solr.war into place
+  command: cp /opt/local/solr-{{solr.version}}/dist/solr-{{solr.version}}.war /opt/solr/solr-{{solr.version}}.war
+        creates=/opt/solr/solr-{{solr.version}}.war
+  sudo: yes
 
-- name: Copy Solr multicore example into place.
-  command: >
-    cp -R {{ solr_path }}/example/multicore {{ solr_path }}/cores
-    creates={{ solr_path }}/cores/README.txt
-  notify: restart tomcat
+- name: copy solr jar files
+  command: cp /opt/local/solr-{{solr.version}}/{{item}} /opt/solr/lib
+        creates=/opt/solr/lib/{{item | basename}}
+  sudo: yes
+  with_items:
+    - dist/solr-analysis-extras-{{solr.version}}.jar
+    - dist/solr-cell-{{solr.version}}.jar
+    - dist/solr-clustering-{{solr.version}}.jar
+    - dist/solr-core-{{solr.version}}.jar
+    - dist/solr-dataimporthandler-{{solr.version}}.jar
+    - dist/solr-dataimporthandler-extras-{{solr.version}}.jar
+    - dist/solr-langid-{{solr.version}}.jar
+    - dist/solr-map-reduce-{{solr.version}}.jar
+    - dist/solr-morphlines-cell-{{solr.version}}.jar
+    - dist/solr-morphlines-core-{{solr.version}}.jar
+    - dist/solr-solrj-{{solr.version}}.jar
+    - dist/solr-test-framework-{{solr.version}}.jar
+    - dist/solr-uima-{{solr.version}}.jar
+    - dist/solr-velocity-{{solr.version}}.jar
+    - contrib/analysis-extras/lib/icu4j-53.1.jar
+    - contrib/analysis-extras/lucene-libs/lucene-analyzers-icu-{{solr.version}}.jar
 
-- name: Check if solr.xml file already exists.
-  stat: "path={{ solr_path }}/solr.xml"
-  register: solr_file
+- command: cp /opt/local/solr-{{solr.version}}/example/{{item}} /usr/share/tomcat6/lib
+    creates=/usr/share/tomcat6/lib/{{item | basename}}
+  sudo: yes
+  with_items:
+    - lib/ext/jcl-over-slf4j-1.7.6.jar
+    - lib/ext/jul-to-slf4j-1.7.6.jar
+    - lib/ext/log4j-1.2.17.jar
+    - lib/ext/slf4j-api-1.7.6.jar
+    - lib/ext/slf4j-log4j12-1.7.6.jar
+    - resources/log4j.properties
 
-- name: Copy Solr core XML file into place.
+- lineinfile: line="common.loader=${catalina.base}/lib,${catalina.base}/lib/*.jar,${catalina.home}/lib,${catalina.home}/lib/*.jar,/opt/solr-4.3.0/lib/ext/*.jar,/opt/solr-4.3.0/lib/contrib/extraction/lib/*.jar"
+        regexp="^common.loader"
+        dest=/etc/tomcat6/catalina.properties
+  sudo: yes
+
+- name: Correct ownership
+  sudo: yes
+  file: owner=tomcat
+        group=tomcat
+        path=/opt/solr
+        recurse=yes
+        state=directory
+
+#
+# setup vecnet core
+#
+
+- name: Install solr configuration
+  sudo: yes
   template: >
     src=solr.xml.j2
-    dest={{ solr_path }}/solr.xml
-    owner={{ tomcat_user }}
-    group={{ tomcat_user }}
-    mode=755
-    backup=yes
-  when: solr_file.stat.exists == false
-  notify: restart tomcat
+    dest=/opt/solr/solr.xml
+    owner=tomcat
+    group=tomcat
 
-- name: Check if setup-complete file exists.
-  stat: "path={{ solr_path }}/setup-complete"
-  register: setup_complete
+- name: Setup vecnet directory
+  file: path=/opt/solr/vecnet/conf
+        state=directory
+        owner=tomcat
+        group=tomcat
+  sudo: yes
 
-- name: Copy logging jar files and configuration into place for Solr 4.x.
-  shell: "{{ item }}"
+- name: Copy vecnet solr config
+  copy: src={{item}}
+        dest=/opt/solr/vecnet/conf/{{item}}
+        owner=tomcat
+        group=tomcat
+        mode=644
+  sudo: yes
   with_items:
-    - "cp -n {{ solr_path }}/example/lib/ext/* {{ tomcat_lib_path }}"
-    - "cp -n {{ solr_path }}/example/resources/log4j.properties {{ tomcat_lib_path }}"
-  when: "(setup_complete.stat.exists == false) and (solr_version.split('.')[0] == '4')"
+    - protwords.txt
+    - schema.xml
+    - solrconfig.xml
+    - stopwords_en.txt
+    - synonyms.txt
+
+- name: Copy solr.xml into tomcat
+  sudo: yes
+  template: >
+    src=solr-production.j2
+    dest=/etc/tomcat6/Catalina/localhost/solr.xml
+    owner=tomcat
+    group=tomcat
   notify: restart tomcat
-
-- name: Fix file permissions.
-  file: >
-    path={{ solr_path }}
-    state=directory
-    owner={{ tomcat_user }} group={{ tomcat_user }} mode=0755
-    recurse=yes
-  when: setup_complete.stat.exists == false
-
-- name: Create file to indicate Solr install completion.
-  file: >
-    path={{ solr_path }}/setup-complete
-    state=touch
-    owner={{ tomcat_user }}
-    group={{ tomcat_user }}
-    mode=755
-  when: setup_complete.stat.exists == false

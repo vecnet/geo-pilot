@@ -1,0 +1,40 @@
+---
+- yum: name={{item}} state=present
+  sudo: yes
+  with_items:
+    - unzip
+
+- file: path=/opt/src
+        state=directory
+  sudo: yes
+
+- file: path=/opt/local
+        state=directory
+  sudo: yes
+
+- copy: src=fits-{{fits.version}}.zip
+        dest=/opt/src/fits-{{fits.version}}.zip
+  sudo: yes
+
+#- get_url: url=http://projects.iq.harvard.edu/files/fits/files/fits-{{fits.version}}.zip
+#           dest=/opt/src/fits-{{fits.version}}.zip
+
+- file: path=/opt/local/ state=directory
+  sudo: yes
+
+- command: unzip /opt/src/fits-{{fits.version}}.zip
+           chdir=/opt/local
+           creates=/opt/local/fits-{{fits.version}}/fits.sh
+  sudo: yes
+
+- file: src=/opt/local/fits-{{fits.version}}
+        dest=/opt/fits
+        state=link
+  sudo: yes
+
+- file: path=/opt/fits/fits.sh
+        state=file
+  sudo: yes
+
+
+        mode=0755
