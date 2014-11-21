@@ -1,0 +1,11 @@
+- name: add nginx yum repo
+  copy: src=nginx.repo
+        dest=/etc/yum.repos.d/nginx.repo
+        mode=644
+
+- name: install nginx
+  yum: name=nginx
+
+- name: remove default configuration
+  file: path=/etc/nginx/conf.d/default.conf
+        state=absent

@@ -9,3 +9,28 @@
       with_items:
        - htop
        - tmux
+       - ferm
+
+    - name: Add ferm config directory
+      file:
+        path=/etc/ferm
+        state=directory
+        owner=root group=root mode=0700
+
+    - name: Add ferm config directory for additional config files
+      file:
+        path=/etc/ferm/ferm.d
+        state=directory
+        owner=root group=root mode=0700
+
+    - name: Upload config
+      copy:
+        dest=/etc/ferm/ferm.conf
+        src=files/ferm.conf
+        owner=root group=root mode=0700
+      notify:
+        - run ferm
+
+  handlers:
+    - name: run ferm
+      shell: /usr/sbin/ferm /etc/ferm/ferm.conf && /sbin/service iptables save

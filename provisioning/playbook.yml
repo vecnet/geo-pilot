@@ -8,10 +8,12 @@
 
 - name: Standalone
   hosts: all
+  sudo: yes
   roles:
     - postgres
     - redis
     - fits
     - tomcat
     - solr
+    - ruby
     #- { role: geerlingguy.solr, workspace: /opt/local, tomcat6_hostname: localhost, solr_cores: [ vecnet ], sudo: yes}
