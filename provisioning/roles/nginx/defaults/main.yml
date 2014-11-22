@@ -1,0 +1,4 @@
+
+rails_env: development
+domain:    localhost
+use_ssl:   false

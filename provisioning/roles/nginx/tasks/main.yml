@@ -9,3 +9,21 @@
 - name: remove default configuration
   file: path=/etc/nginx/conf.d/default.conf
         state=absent
+  notify: reload nginx
+
+- name: add vecnet configuration
+  template: src={{item}}.j2
+            dest=/etc/nginx/{{item}}
+            owner=nginx
+            group=nginx
+  with_items:
+    - conf.d/tomcat.conf
+    - conf.d/vecnet.conf
+    - nginx.conf
+
+  notify: reload nginx
+
+- name: start nginx
+  service: name=nginx
+           enabled=yes
+           state=started
