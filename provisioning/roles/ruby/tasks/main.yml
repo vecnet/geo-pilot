@@ -30,16 +30,16 @@
         state=directory
 
 - name: download chruby
-  get_url: url=https://github.com/postmodern/chruby/archive/v0.3.4.tar.gz
-        dest=/opt/src/chruby-0.3.4.tar.gz
+  get_url: url=https://github.com/postmodern/chruby/archive/v{{chruby.version}}.tar.gz
+        dest=/opt/src/chruby-{{chruby.version}}.tar.gz
 
 - name: expand chruby
-  command: tar -C /opt/src -xvzf /opt/src/chruby-0.3.4.tar.gz
-    creates=/opt/src/chruby-0.3.4/Makefile
+  command: tar -C /opt/src -xvzf /opt/src/chruby-{{chruby.version}}.tar.gz
+    creates=/opt/src/chruby-{{chruby.version}}/Makefile
 
 - name: compile chruby
   command: make install
-        chdir=/opt/src/chruby-0.3.4
+        chdir=/opt/src/chruby-{{chruby.version}}
         creates=/usr/local/share/chruby/chruby.sh
 
 - name: install chruby profile
@@ -48,5 +48,6 @@
         mode=644
 
 - name: compile ruby
-  command: /usr/local/bin/ruby-build 2.0.0-p353 /opt/rubies/2.0.0-p353
-        creates=/opt/rubies/2.0.0-p353/bin/ruby
+  command: /usr/local/bin/ruby-build {{ruby.version}} /opt/rubies/{{ruby.version}}
+        creates=/opt/rubies/{{ruby.version}}/bin/ruby
+
