@@ -1,0 +1,81 @@
+#chmod -R -- g+w /home/app/vecnet/releases/20141124164147 &&
+#
+#    rm -rf -- /home/app/vecnet/releases/20141124164147/public/system &&
+#    mkdir -p -- /home/app/vecnet/releases/20141124164147/public/ &&
+#    ln -s -- /home/app/vecnet/shared/system /home/app/vecnet/releases/20141124164147/public/system &&
+#    rm -rf -- /home/app/vecnet/releases/20141124164147/log &&
+#    ln -s -- /home/app/vecnet/shared/log /home/app/vecnet/releases/20141124164147/log &&
+#    rm -rf -- /home/app/vecnet/releases/20141124164147/tmp/pids &&
+#    mkdir -p -- /home/app/vecnet/releases/20141124164147/tmp/ &&
+#    ln -s -- /home/app/vecnet/shared/pids /home/app/vecnet/releases/20141124164147/tmp/pids
+
+- name: copy code to directory
+  command: cp -RPp {{deploy_root}}/shared/cached-copy {{release_dir}} # {{deploy_root}}/releases/{{head_ref.stdout}}
+
+- name: fix permissions
+  file: path={{release_dir}}
+      state=directory
+      recurse=yes
+      owner=app
+      group=app
+      mode=755
+
+- name: ensure tmp directory exists
+  file: path={{release_dir}}/tmp
+    state=directory
+    owner=app
+    group=app
+    mode=755
+
+- name: link in the shared directories
+  file: src={{deploy_root}}/shared/{{item.src}}
+      path={{release_dir}}/{{item.target}}
+      state=link
+  with_items:
+      - { src: system,  target: public/system }
+      - { src: log,     target: log }
+      - { src: pids,    target: tmp/pids }
+
+- name: Install config files
+  template: src={{item}}.j2
+      dest={{release_dir}}/config/{{item}}
+  with_items:
+      - database.yml
+      - solr.yml
+
+- name: bundle install
+  shell: su app -c "source /etc/profile.d/chruby.sh
+    && chruby 2.0.0-p353
+    && exec bundle install --gemfile {{release_dir}}/Gemfile --path {{deploy_root}}/shared/bundle --deployment --without development test"
+    chdir={{release_dir}}
+
+
+- name: write_build_identifier
+  shell: date '+%Y%m%d %H:%M:%S' > {{release_dir}}/config/bundle-identifier.txt
+    creates={{release_dir}}/config/bundle-identifier.txt
+
+- name: deploy migrate
+  shell: su app -c "source /etc/profile.d/chruby.sh
+    && chruby 2.0.0-p353
+    && exec bundle exec rake RAILS_ENV={{rails.env}} db:migrate"
+    chdir={{release_dir}}
+
+- name: deploy precompile
+  shell: su app -c "source /etc/profile.d/chruby.sh
+        && chruby 2.0.0-p353
+        && exec bundle exec rake RAILS_ENV={{rails.env}} RAILS_GROUPS=assets assets:precompile"
+        chdir={{release_dir}}
+
+- name: vecnet:write_env_vars
+  template: src=env-vars.j2
+    dest={{release_dir}}/env-vars
+    owner=app
+    group=app
+    mode=644
+
+- name: only keep last 6 deploys
+  shell: >
+      ls -1dt {{deploy_root}}/releases/* | tail -n +6 |  xargs rm -rf
+      chdir={{deploy_root}}/releases
+
+    

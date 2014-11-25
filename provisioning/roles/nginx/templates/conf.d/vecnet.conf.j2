@@ -2,7 +2,8 @@ tcp_nopush on;
 tcp_nodelay off;
 
 upstream vecnet {
-    server unix:/tmp/vecnet.sock.0;
+    server 127.0.0.1:3000;
+    # server unix:/tmp/vecnet.sock.0;
 }
 server {
     listen 80 default_server;
@@ -22,8 +23,8 @@ server {
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 {% endif %}
 
-    client_max_body_size 4G;
-    root /home/app/vecnet/current/public;
+    client_max_body_size 1G;
+    root /opt/vecnet-geopilot/current/public;
     location ^~ /assets/ {
         # compress things on-the-fly
         gzip on;

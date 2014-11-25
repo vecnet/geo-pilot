@@ -20,7 +20,7 @@
 # capistrano-like directory layout
 # But not perfect, since the capistrano way is not idempotent
 #
-# This way isn't perfect either since the git checkout could return 
+# This way isn't perfect either since the git checkout could return
 # different things each time...is the problem a difference between
 # provisioning and deploying?
 
@@ -45,7 +45,7 @@
     dest={{deploy_root}}/shared/cached-copy
     force=yes
     recursive=no
-    version=master
+    version=ansible
 
 - name: HEAD ref
   command: git rev-parse --verify HEAD
@@ -60,9 +60,15 @@
 #- name: Copy code to current repo
 #  command: cp -RPp {{deploy_root}}/shared/cached-copy {{deploy_root}}/current
 
-- name: Run deploy script
-  script: deploy.sh {{deploy_root}} {{deploy_root}}/releases/{{head_ref.stdout}}
+#- name: Run deploy script
+#  script: deploy.sh {{deploy_root}} {{deploy_root}}/releases/{{head_ref.stdout}} {{rails.env}}
+#  when: deploy_exists.rc != 0
+
+- name: Do deployment
+  include: deploy.yml
   when: deploy_exists.rc != 0
+  vars:
+    release_dir: "{{deploy_root}}/releases/{{head_ref.stdout}}"
 
 - name: Fix permissions
   file: path={{deploy_root}}
@@ -72,47 +78,6 @@
         mode=755
         recurse=yes
 
-#chmod -R -- g+w /home/app/vecnet/releases/20141124164147 &&
-#
-#    rm -rf -- /home/app/vecnet/releases/20141124164147/public/system &&
-#    mkdir -p -- /home/app/vecnet/releases/20141124164147/public/ &&
-#    ln -s -- /home/app/vecnet/shared/system /home/app/vecnet/releases/20141124164147/public/system &&
-#    rm -rf -- /home/app/vecnet/releases/20141124164147/log &&
-#    ln -s -- /home/app/vecnet/shared/log /home/app/vecnet/releases/20141124164147/log &&
-#    rm -rf -- /home/app/vecnet/releases/20141124164147/tmp/pids &&
-#    mkdir -p -- /home/app/vecnet/releases/20141124164147/tmp/ &&
-#    ln -s -- /home/app/vecnet/shared/pids /home/app/vecnet/releases/20141124164147/tmp/pids
-
-#- name: bundle install
-#  shell: su app -c "source /etc/profile.d/chruby.sh
-#    && chruby 2.0.0-p353
-#    && exec bundle install --gemfile {{deploy_root}}/current/Gemfile --path {{deploy_root}}/shared/bundle --deployment --without development test"
-#    chdir={{deploy_root}}/current
-#
-#
-#- name: write_build_identifier
-#  template:
-#    content="2014-11-24 11:41:39"
-#    path={{deploy_root}}/current/config/bundle-identifier.txt
-#
-#- name: deploy migrate
-#  shell: su app -c "source /etc/profile.d/chruby.sh
-#    && chruby 2.0.0-p353
-#    && exec bundle exec rake RAILS_ENV={{rails.env}} db:migrate"
-#    chdir={{deploy_root}}/current
-#
-#- name: deploy precompile
-#  shell: su app -c "source /etc/profile.d/chruby.sh
-#        && chruby 2.0.0-p353
-#        && exec bundle exec rake RAILS_ENV={{rails.env}} RAILS_GROUPS=assets assets:precompile"
-#    chdir={{deploy_root}}/current
-#
-#- name: vecnet:write_env_vars
-#  copy: |
-#    dest={{deploy_root}}/current/env-vars
-#    content="RAILS_ENV={{rails.env}}
-#    RAILS_ROOT={{deploy_root}}/current
-#    "
 
 - name: link current directory
   file: src={{deploy_root}}/releases/{{head_ref.stdout}}
@@ -122,9 +87,9 @@
 - name: restart unicorn
   command: su app -c "{{deploy_root}}/current/script/reload-unicorn.sh"
 
-- name: restart workers
-  shell: su app -c "{{deploy_root}}/current/script/stop-pool.sh && {{deploy_root}}/current/script/start-pool.sh"
-
+#- name: restart workers
+#  shell: su app -c "{{deploy_root}}/current/script/stop-pool.sh && {{deploy_root}}/current/script/start-pool.sh"
+#
 #
 # # executing `deploy:cleanup'
 # ls -1dt /home/app/vecnet/releases/* | tail -n +6 |  xargs rm -rf
@@ -136,12 +101,12 @@
 # make /opt/vecnet-geopilot directory
 
 
-- name: install log rotate
-  copy: src=logrotata.d/vecnet
-    dest=/etc/logrotate.d/vecnet
-    owner=root
-    group=root
-    mode=644
+#- name: install log rotate
+#  copy: src=logrotata.d/vecnet
+#    dest=/etc/logrotate.d/vecnet
+#    owner=root
+#    group=root
+#    mode=644
 
 # init.d
 # run as root
