@@ -17,4 +17,5 @@
     - solr
     - ruby
     - nginx
+    - vecnet
     #- { role: geerlingguy.solr, workspace: /opt/local, tomcat6_hostname: localhost, solr_cores: [ vecnet ], sudo: yes}

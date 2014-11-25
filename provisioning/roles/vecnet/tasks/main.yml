@@ -10,12 +10,12 @@
     - clamav
     - clamav-devel
     - clamav-db
+    - postgresql-devel
 
 - name: install bundler
-  shell: su app -c "chruby 2.0.0-p353 && gem install bundler"
+  shell: su app -c "source /etc/profile.d/chruby.sh && chruby 2.0.0-p353 && gem install bundler"
     chdir=/home/app
-
-# make {{deploy_dir}} (/opt/vecnet)
+    creates=/home/app/.gem/ruby/2.0.0/bin/bundle
 
 # capistrano-like directory layout
 # But not perfect, since the capistrano way is not idempotent
@@ -25,31 +25,52 @@
 # provisioning and deploying?
 
 - name: setup application directory layout
-  file: path={{item}}
-        status=directory
+  file: path={{deploy_root}}/{{item}}
+        state=directory
         owner=app
         group=app
-        mode=644
+        mode=755
   with_items:
-    - "{{deploy_root}}"
-    - "{{deploy_root}}/releases"
-    - "{{deploy_root}}/shared"
-    - "{{deploy_root}}/shared/bundle"
-    - "{{deploy_root}}/shared/config"
-    - "{{deploy_root}}/shared/log"
-    - "{{deploy_root}}/shared/pids"
-    - "{{deploy_root}}/shared/system"
+    - releases
+    - shared
+    - shared/bundle
+    - shared/config
+    - shared/log
+    - shared/pids
+    - shared/system
 
 - name: check out code
   git:
     repo="https://github.com/vecnet/geo-pilot.git"
     dest={{deploy_root}}/shared/cached-copy
     force=yes
+    recursive=no
     version=master
 
-- name: Copy code to current repo
-  command: cp -RPp {{deploy_root}}/shared/cached-copy {{deploy_root}}/current
+- name: HEAD ref
+  command: git rev-parse --verify HEAD
+    chdir={{deploy_root}}/shared/cached-copy
+  register: head_ref
 
+- name: See if directory exists
+  command: ls {{deploy_root}}/releases/{{head_ref.stdout}}
+  register: deploy_exists
+  ignore_errors: yes
+
+#- name: Copy code to current repo
+#  command: cp -RPp {{deploy_root}}/shared/cached-copy {{deploy_root}}/current
+
+- name: Run deploy script
+  script: deploy.sh {{deploy_root}} {{deploy_root}}/releases/{{head_ref.stdout}}
+  when: deploy_exists.rc != 0
+
+- name: Fix permissions
+  file: path={{deploy_root}}
+        state=directory
+        owner=app
+        group=app
+        mode=755
+        recurse=yes
 
 #chmod -R -- g+w /home/app/vecnet/releases/20141124164147 &&
 #
@@ -62,36 +83,41 @@
 #    mkdir -p -- /home/app/vecnet/releases/20141124164147/tmp/ &&
 #    ln -s -- /home/app/vecnet/shared/pids /home/app/vecnet/releases/20141124164147/tmp/pids
 
-- name: bundle install
-  shell: su app -c "source /etc/profile.d/chruby.sh
-    && chruby 2.0.0-p353
-    && exec bundle install --gemfile {{deploy_root}}/current/Gemfile --path {{deploy_root}}/shared/bundle --deployment --without development test"
-    chdir={{deploy_root}}/current
+#- name: bundle install
+#  shell: su app -c "source /etc/profile.d/chruby.sh
+#    && chruby 2.0.0-p353
+#    && exec bundle install --gemfile {{deploy_root}}/current/Gemfile --path {{deploy_root}}/shared/bundle --deployment --without development test"
+#    chdir={{deploy_root}}/current
+#
+#
+#- name: write_build_identifier
+#  template:
+#    content="2014-11-24 11:41:39"
+#    path={{deploy_root}}/current/config/bundle-identifier.txt
+#
+#- name: deploy migrate
+#  shell: su app -c "source /etc/profile.d/chruby.sh
+#    && chruby 2.0.0-p353
+#    && exec bundle exec rake RAILS_ENV={{rails.env}} db:migrate"
+#    chdir={{deploy_root}}/current
+#
+#- name: deploy precompile
+#  shell: su app -c "source /etc/profile.d/chruby.sh
+#        && chruby 2.0.0-p353
+#        && exec bundle exec rake RAILS_ENV={{rails.env}} RAILS_GROUPS=assets assets:precompile"
+#    chdir={{deploy_root}}/current
+#
+#- name: vecnet:write_env_vars
+#  copy: |
+#    dest={{deploy_root}}/current/env-vars
+#    content="RAILS_ENV={{rails.env}}
+#    RAILS_ROOT={{deploy_root}}/current
+#    "
 
-
-- name: write_build_identifier
-  template:
-    content="2014-11-24 11:41:39"
-    path={{deploy_root}}/current/config/bundle-identifier.txt
-
-- name: deploy migrate
-  shell: su app -c "source /etc/profile.d/chruby.sh
-    && chruby 2.0.0-p353
-    && exec bundle exec rake RAILS_ENV={{rails.env}} db:migrate"
-    chdir={{deploy_root}}/current
-
-- name: deploy precompile
-  shell: su app -c "source /etc/profile.d/chruby.sh
-        && chruby 2.0.0-p353
-        && exec bundle exec rake RAILS_ENV={{rails.env}} RAILS_GROUPS=assets assets:precompile"
-    chdir={{deploy_root}}/current
-
-- name: vecnet:write_env_vars
-  copy: |
-    dest={{deploy_root}}/current/env-vars
-    content="RAILS_ENV={{rails.env}}
-    RAILS_ROOT={{deploy_root}}/current
-    "
+- name: link current directory
+  file: src={{deploy_root}}/releases/{{head_ref.stdout}}
+      path={{deploy_root}}/current
+      state=link
 
 - name: restart unicorn
   command: su app -c "{{deploy_root}}/current/script/reload-unicorn.sh"
