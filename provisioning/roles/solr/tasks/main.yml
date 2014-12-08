@@ -14,11 +14,11 @@
   fail: msg="Please set 'solr.version' variable in the playbook"
   when: solr.version is not defined
 
-- name: Download SOLR
-  copy: src=solr-{{solr.version}}.zip
-        dest=/opt/src/solr-{{solr.version}}.zip
-        owner=tomcat
-        group=tomcat
+- name: Download Solr
+  get_url: url=http://dl.vecnet.org/i/solr-{{solr.version}}.zip
+           dest=/opt/src/solr-{{solr.version}}.zip
+           owner=tomcat
+           group=tomcat
   sudo: yes
 
 #  get_url: url=http://mirror.tcpdiag.net/apache/lucene/solr/{{solr.version}}/solr-{{solr.version}}.zip

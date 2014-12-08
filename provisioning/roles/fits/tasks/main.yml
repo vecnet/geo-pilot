@@ -12,12 +12,8 @@
         state=directory
   sudo: yes
 
-- copy: src=fits-{{fits.version}}.zip
-        dest=/opt/src/fits-{{fits.version}}.zip
-  sudo: yes
-
-#- get_url: url=http://projects.iq.harvard.edu/files/fits/files/fits-{{fits.version}}.zip
-#           dest=/opt/src/fits-{{fits.version}}.zip
+- get_url: url=http://dl.vecnet.org/i/fits-{{fits.version}}.zip
+           dest=/opt/src/fits-{{fits.version}}.zip
 
 - file: path=/opt/local/ state=directory
   sudo: yes
