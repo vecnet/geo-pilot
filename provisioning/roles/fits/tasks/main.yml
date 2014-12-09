@@ -4,33 +4,31 @@
   with_items:
     - unzip
 
-- file: path=/opt/src
+- name: create /opt/src
+  file: path=/opt/src
         state=directory
   sudo: yes
 
-- file: path=/opt/local
-        state=directory
-  sudo: yes
-
-- get_url: url=http://dl.vecnet.org/i/fits-{{fits.version}}.zip
+- name: download fits
+  get_url: url=http://dl.vecnet.org/i/fits-{{fits.version}}.zip
            dest=/opt/src/fits-{{fits.version}}.zip
 
-- file: path=/opt/local/ state=directory
+- name: expand fits
+  unarchive: src=/opt/src/fits-{{fits.version}}.zip
+      dest=/opt/src
+      copy=no
+      owner=root
+      group=root
+      creates=/opt/src/fits-{{fits.version}}/fits.sh
   sudo: yes
 
-- command: unzip /opt/src/fits-{{fits.version}}.zip
-           chdir=/opt/local
-           creates=/opt/local/fits-{{fits.version}}/fits.sh
-  sudo: yes
-
-- file: src=/opt/local/fits-{{fits.version}}
+- file: src=/opt/src/fits-{{fits.version}}
         dest=/opt/fits
         state=link
   sudo: yes
 
 - file: path=/opt/fits/fits.sh
         state=file
+        mode=0755
   sudo: yes
 
-
-        mode=0755

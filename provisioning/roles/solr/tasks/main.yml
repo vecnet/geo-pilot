@@ -8,22 +8,17 @@
   sudo: yes
   with_items:
     - /opt/src
-    - /opt/local
 
 - name: Check variable solr.version is set
   fail: msg="Please set 'solr.version' variable in the playbook"
   when: solr.version is not defined
 
 - name: Download Solr
-  get_url: url=http://dl.vecnet.org/i/solr-{{solr.version}}.zip
-           dest=/opt/src/solr-{{solr.version}}.zip
+  get_url: url=http://dl.vecnet.org/i/solr-{{solr.version}}.tgz
+           dest=/opt/src/solr-{{solr.version}}.tgz
            owner=tomcat
            group=tomcat
   sudo: yes
-
-#  get_url: url=http://mirror.tcpdiag.net/apache/lucene/solr/{{solr.version}}/solr-{{solr.version}}.zip
-#           dest=/opt/src/solr-{{solr.version}}.zip
-#           sha256sum=aa0528975fa38b08de2000aae747b5f0a89c4232b2279280ad2f5d0ab58cbc82
 
 - name: Setup directories
   file: path={{item}}
@@ -37,17 +32,21 @@
     - /opt/solr/lib
 
 - name: Unpack SOLR
-  command: unzip -d /opt/local /opt/src/solr-{{solr.version}}.zip
-        creates=/opt/local/solr-{{solr.version}}/dist/solr-{{solr.version}}.war
+  unarchive: copy=no
+             creates=/opt/src/solr-{{solr.version}}/dist/solr-{{solr.version}}.war
+             group=tomcat
+             owner=tomcat
+             src=/opt/src/solr-{{solr.version}}.tgz
+             dest=/opt/src
   sudo: yes
 
 - name: Copy solr.war into place
-  command: cp /opt/local/solr-{{solr.version}}/dist/solr-{{solr.version}}.war /opt/solr/solr-{{solr.version}}.war
+  command: cp /opt/src/solr-{{solr.version}}/dist/solr-{{solr.version}}.war /opt/solr/solr-{{solr.version}}.war
         creates=/opt/solr/solr-{{solr.version}}.war
   sudo: yes
 
 - name: copy solr jar files
-  command: cp /opt/local/solr-{{solr.version}}/{{item}} /opt/solr/lib
+  command: cp /opt/src/solr-{{solr.version}}/{{item}} /opt/solr/lib
         creates=/opt/solr/lib/{{item | basename}}
   sudo: yes
   with_items:
@@ -68,7 +67,7 @@
     - contrib/analysis-extras/lib/icu4j-53.1.jar
     - contrib/analysis-extras/lucene-libs/lucene-analyzers-icu-{{solr.version}}.jar
 
-- command: cp /opt/local/solr-{{solr.version}}/example/{{item}} /usr/share/tomcat6/lib
+- command: cp /opt/src/solr-{{solr.version}}/example/{{item}} /usr/share/tomcat6/lib
     creates=/usr/share/tomcat6/lib/{{item | basename}}
   sudo: yes
   with_items:

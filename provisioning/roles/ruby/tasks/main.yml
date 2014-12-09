@@ -13,21 +13,24 @@
     - zlib
     - zlib-devel
 
-- name: download ruby build
+- name: clone ruby build
   git: repo=https://github.com/sstephenson/ruby-build.git
-    dest=/opt/src/ruby-build
-    update=no
+       dest=/opt/src/ruby-build
+       update=yes
+  sudo: yes
 
 - name: compile ruby build
   command: ./install.sh
       chdir=/opt/src/ruby-build
       creates=/usr/local/bin/ruby-build
+  sudo: yes
 
 - name: make ruby directory
   file: path=/opt/rubies
         owner=root
         group=root
         state=directory
+  sudo: yes
 
 - name: download chruby
   #get_url: url=https://github.com/postmodern/chruby/archive/v{{chruby.version}}.tar.gz
@@ -35,8 +38,12 @@
         dest=/opt/src/chruby-{{chruby.version}}.tar.gz
 
 - name: expand chruby
-  command: tar -C /opt/src -xvzf /opt/src/chruby-{{chruby.version}}.tar.gz
-    creates=/opt/src/chruby-{{chruby.version}}/Makefile
+  unarchive: src=/opt/src/chruby-{{chruby.version}}.tar.gz
+           dest=/opt/src
+           copy=no
+           group=root
+           owner=root
+           creates=/opt/src/chruby-{{chruby.version}}/Makefile
 
 - name: compile chruby
   command: make install
