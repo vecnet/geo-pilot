@@ -2,10 +2,21 @@
   hosts: all
   sudo: yes
   tasks:
+    - name: create /opt/src
+      file: path=/opt/src
+            state=directory
+      sudo: yes
     - name: copy epel rpm file
       copy: src=files/epel-release-6-8.noarch.rpm
             dest=/opt/src/epel-release-6-8.noarch.rpm
     - name: install epel rpm
       yum:  name=/opt/src/epel-release-6-8.noarch.rpm
             state=present
+    # it looks like the https EPEL repo uses SSL3.0, which
+    # is not in the base centos 6.x image
+    # see https://community.hpcloud.com/article/centos-63-instance-giving-cannot-retrieve-metalink-repository-epel-error
+    - name: fix SSL issue
+      replace: dest=/etc/yum.repos.d/epel.repo
+          regexp=^mirrorlist=https
+          replace=mirrorlist=http
 
