@@ -1,0 +1,13 @@
+---
+- name: Base packages
+  hosts: all
+  include: fedora-epel.yml
+
+- hosts: all
+  include: common.yml
+
+- name: Install geosuite
+  hosts: all
+  sudo: yes
+  roles:
+    - geosuite

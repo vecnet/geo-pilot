@@ -1,0 +1,11 @@
+- name: Setup OpenGeo yum repo
+  template: source=OpenGeo.repo
+    dest=/etc/yum.repo.d/OpenGeo.repo
+    owner=root
+    group=root
+    mode=644
+
+- name: Install packages
+  sudo: yes
+  yum: name=opengeo
+       state=installed
