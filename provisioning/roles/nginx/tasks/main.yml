@@ -20,7 +20,6 @@
     - conf.d/tomcat.conf
     - conf.d/vecnet.conf
     - nginx.conf
-
   notify: reload nginx
 
 - name: start nginx

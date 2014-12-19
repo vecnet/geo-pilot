@@ -1,11 +1,37 @@
 - name: Setup OpenGeo yum repo
-  template: source=OpenGeo.repo
-    dest=/etc/yum.repo.d/OpenGeo.repo
+  template: src=OpenGeo.repo.j2
+    dest=/etc/yum.repos.d/OpenGeo.repo
     owner=root
     group=root
     mode=644
 
 - name: Install packages
   sudo: yes
-  yum: name=opengeo
+  yum: name={{item}}
        state=installed
+  with_items:
+    - opengeo
+    - nginx
+
+- name: remove default nginx configuration
+  file: path=/etc/nginx/conf.d/default.conf
+        state=absent
+  notify: reload nginx
+
+- name: set up nginx proxy
+  sudo: yes
+  template: src={{item}}.j2
+    dest=/etc/nginx/{{item}}
+    owner=root
+    group=root
+    mode=644
+  with_items:
+    - nginx.conf
+    - conf.d/geosuite.conf
+  notify: reload nginx
+
+- name: start nginx
+  service: name=nginx
+           enabled=yes
+           state=started
+
