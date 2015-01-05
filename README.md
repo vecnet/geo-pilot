@@ -13,7 +13,7 @@ This project  builds the required components for GeoBlacklight and the Vecnet Di
 
 ##Getting Started
 
-Requires `vagrant` and `git` to be installed
+Requires `vagrant` `ansible` and `git` to be installed
 
 Clone the repo
 
