@@ -1,1 +1,1 @@
-//= require geoblacklight/application
+//= require geoblacklight
