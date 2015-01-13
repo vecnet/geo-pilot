@@ -19,4 +19,10 @@
       replace: dest=/etc/yum.repos.d/epel.repo
           regexp=^mirrorlist=https
           replace=mirrorlist=http
+    - name: add nginx repo
+      template: src=files/nginx.conf
+        dest=/etc/yum.repos.d/nginx.conf
+        owner=root
+        group=root
+        mode=644
 

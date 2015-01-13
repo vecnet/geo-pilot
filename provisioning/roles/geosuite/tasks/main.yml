@@ -1,3 +1,4 @@
+# TODO: this file needs to change between rhel and centos...
 - name: Setup OpenGeo yum repo
   template: src=OpenGeo.repo.j2
     dest=/etc/yum.repos.d/OpenGeo.repo
@@ -35,3 +36,4 @@
            enabled=yes
            state=started
 
+# TODO: set up ntp service

@@ -78,4 +78,4 @@
       ls -1dt {{deploy_root}}/releases/* | tail -n +6 |  xargs rm -rf
       chdir={{deploy_root}}/releases
 
-    
+
