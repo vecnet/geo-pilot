@@ -1,5 +1,5 @@
 - name: ruby dependencies
-  yum: name={{item}}
+  yum: name={{item}} disablerepo=epel
        state=installed
   with_items:
     - gcc-c++
@@ -12,6 +12,8 @@
     - readline-devel
     - zlib
     - zlib-devel
+    - sqlite-devel
+
 
 - name: clone ruby build
   git: repo=https://github.com/sstephenson/ruby-build.git
@@ -58,4 +60,3 @@
 - name: compile ruby
   command: /usr/local/bin/ruby-build {{ruby.version}} /opt/rubies/{{ruby.version}}
         creates=/opt/rubies/{{ruby.version}}/bin/ruby
-
